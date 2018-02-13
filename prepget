@@ -1,0 +1,110 @@
+#!/usr/bin/python
+import argparse
+import subprocess
+from subprocess import STDOUT, check_call
+import wget
+import sqlite3
+import re
+from pathlib import Path
+import requests
+import hashlib
+
+def prepget():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("search", help="Search package in Database")
+    parser.add_argument("name", help="The name of the package")
+    args = parser.parse_args()
+    tablecommand=['install','search','upload','connect']
+    
+    if args.search is None:
+        print "enter arguments for install"
+        exit()
+    if args.name is  None:
+        print "enter arguments for name"
+        exit()
+    if (args.search not in  tablecommand):
+        print "Command not found"
+        exit()
+    else :
+	if (args.search == 'search'):
+        	conn = sqlite3.connect('Prepget.db')
+        	c = conn.cursor()
+            	c.execute("SELECT Nom FROM Paquets WHERE Nom LIKE '"+args.name+"%'")
+            	data = c.fetchall()
+            	print(data)
+            	c.close()
+            	conn.close()
+
+	if (args.search == 'install'):
+	    #url = 'http://172.16.2.99:8080/packet/%s' %args.name
+	    #endpathing = wget -q (url)
+            link = 'http://172.16.2.99:8080/packet/%s' %args.name
+            f = requests.get(link)
+            print (f.text)
+            #link = 'http://172.16.2.99:8080/packet/%s' %args.name
+            #f = requests.get(link)
+
+            #print (f.text)
+            pathing = 'http://172.16.2.99:8080/packet/%s' %f.text
+            download = wget.download(pathing)
+
+	    #if re.search(r".gz", f1) is not None:
+        	#if (f1.endswith("tar.gz")):
+                 #   tar = tarfile.open(f1, "r:gz")
+                  #  tar.extractall()
+                   # tar.close()
+                    #f2 = re.sub(r"(.gz)", r"", f1)
+                    #if (f1.endswith("tar")):
+                    #    tar = tarfile.open(f1, "r:")
+                    #    tar.extractall()
+                    #    tar.close()
+                #	print ("catch")
+
+        if (args.search == 'upload'):
+            conn = sqlite3.connect('Prepget.db')
+            c = conn.cursor()
+            give = args.name
+            if re.search(r".tar.gz", give) is not None:
+                my_file = Path(give)
+                if my_file.is_file():
+                        head, tail = os.path.split(give) #-------------------------- RECUPERATE_THE_FILE --------------------------------------------
+                        print (tail)
+                        #print ("yo")
+                        #----------------------- RETIRE_TARGZ_TO_PUT_THE_NAME_IN_BDD ----------------------------
+                        ext = tail
+                        result = re.sub("(\.tar.gz)", '', ext)
+                        print(result)
+                        version = re.search("(\d+?\.?\d+)", result)
+                        print(version.group(0))
+                        #----------------------- END_OF_RETIRE -------------------------------------------------
+                        import requests
+
+                        data = open(args.name)
+                        response = requests.post('http://172.16.2.99:8080/wadi/packet/', data=data)
+                        esp = requests.post('http://172.16.2.99:8080/packet/'+result, data='/wadi/packet/test3.1.tar.gz') 
+                        
+                        path = 'wadi/packet'
+                        c.execute("INSERT INTO Paquets (Nom, Logiciel, Version, Path) VALUES (?, ?, ?, ?)",
+                                (result, tail, version.group(0), path+tail))
+                        conn.commit()
+                        c.execute
+                        #c.execute("DELETE FROM Paquets WHERE Logiciel = 'phayes-geoPHP-1.2-20-g6855624.tar.gz' ")
+                        
+                        c.execute("SELECT * FROM Paquets")
+                        data = c.fetchall()
+                        print(data)
+                
+                else:
+                    print('the file given isnt a .tar.gz')
+                    exit()
+        
+        if (args.search == 'connect'):
+            Login = raw_input("Entrez votre login: ")
+            Password = raw_input("Entrez votre mot de passe")
+            Password = hashlib.md5(Password).hexdigest()
+            requests.get("http://172.16.2.99:8080/"+Login+"/"+Password)
+            
+
+        if (args.search == 'register'):
+            print("Register")
+prepget()
