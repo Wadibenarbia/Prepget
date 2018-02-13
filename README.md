@@ -1,0 +1,2 @@
+# Prepget
+Installateur de paquet
